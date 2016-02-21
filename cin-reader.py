@@ -6,9 +6,7 @@ def convert_key(keyname, s):
         ns += keyname[c]
     return ns
 
-def main():
-    filename = 'phone.cin'
-
+def read_cin_file(filename):
     keyname = {}
     with open(filename) as f:
         STATE_INIT = 0
@@ -30,6 +28,10 @@ def main():
             elif state == STATE_CHARDEF:
                 mapping = convert_key(keyname, e[0])
                 print(e[1], mapping)
+
+def main():
+    filename = 'phone.cin'
+    read_cin_file(filename)
 
 if __name__ == '__main__':
     main()
