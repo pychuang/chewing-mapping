@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import csv
+import os
+import pickle
 import Pmw
 import tkinter
 
@@ -14,21 +16,22 @@ class WordController(object):
     def toggle_word_button(self):
         if self.selected:
             self.button.config(relief=tkinter.RAISED)
-            print('deselect', self.word)
         else:
             self.button.config(relief=tkinter.SUNKEN)
-            print('select', self.word)
 
         self.selected = not self.selected
         self.delegate.update_selected_words()
 
+    def enable_word_button(self):
+        self.selected = True
+        self.button.config(relief=tkinter.SUNKEN)
 
     def destroy(self):
         self.button.destroy()
 
 
 class SoundController(object):
-    def __init__(self, sys, parent_view, delegate, sound):
+    def __init__(self, sys, parent_view, delegate, sound, selected_words):
         self.sound = sound
         self.sys = sys
         self.delegate = delegate
@@ -38,17 +41,24 @@ class SoundController(object):
         self.sound_button = tkinter.Button(parent_view, text=sound, command=self.toggle_sound_button)
         self.words_frame = tkinter.Frame(parent_view)
 
-        self.word_controllers= []
-        self.selected_words = set()
+        self.word_controllers = []
+
+        if selected_words is not None:
+            self.selected_words = selected_words
+            self.toggle_sound_button()
+        else:
+            self.selected_words = set()
+
+    def enable_sound_button(self):
+        self.selected = True
+        self.sound_button.config(relief=tkinter.SUNKEN)
 
     def toggle_sound_button(self):
         if self.selected:
             self.sound_button.config(relief=tkinter.RAISED)
-            print('deselect', self.sound)
             self.deselect_sound(self.sound)
         else:
             self.sound_button.config(relief=tkinter.SUNKEN)
-            print('select', self.sound)
             self.select_sound(self.sound)
 
         self.selected = not self.selected
@@ -58,6 +68,8 @@ class SoundController(object):
             for j, word in enumerate(a):
                 try:
                     wc = WordController(self.words_frame, self, word)
+                    if word in self.selected_words:
+                        wc.enable_word_button()
                     wc.button.grid(row=i, column=j)
                     self.word_controllers.append(wc)
                 except Exception as e:
@@ -81,20 +93,24 @@ class SoundController(object):
 
 
 class WordSelectController(object):
-    def __init__(self, sys, parent_view, delegate):
+    def __init__(self, sys, parent_view, delegate, saved_state):
         self.sys = sys
         self.delegate = delegate
-        sf = Pmw.ScrolledFrame(parent_view, labelpos=tkinter.N, label_text='音 & 字')
-        sf.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=True)
-        self.sf = sf
+        self.sf = Pmw.ScrolledFrame(parent_view, labelpos=tkinter.N, label_text='音 & 字')
+        self.sf.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=True)
+
         self.selected_words = set()
 
-        self.sound_controllers= []
-        self.create_sound_buttons_and_words_frames(sf.interior())
+        self.sound_controllers = []
+        frame = self.sf.interior()
 
-    def create_sound_buttons_and_words_frames(self, frame):
         for i, sound in enumerate(self.sys.sounds):
-            sc = SoundController(self.sys, frame, self, sound)
+            if sound in saved_state:
+                selected_words = saved_state[sound]
+            else:
+                selected_words = None
+
+            sc = SoundController(self.sys, frame, self, sound, selected_words)
             self.sound_controllers.append(sc)
 
             sc.sound_button.grid(row=i, column=0, sticky=tkinter.NW+tkinter.SE)
@@ -109,12 +125,21 @@ class WordSelectController(object):
         print('WSC: SELECTED WORDS:', self.selected_words)
         self.delegate.selected_words_updated(self.selected_words)
 
+    def state_to_save(self):
+        state = {}
+        for sc in self.sound_controllers:
+            if not sc.selected:
+                continue
+            state[sc.sound] = sc.selected_words
+
+        return state
 
 class NameSelectController(object):
-    def __init__(self, sys, parent_view):
+    def __init__(self, sys, parent_view, state):
         self.sys = sys
         self.candidate_words = set()
-        self.word_scores = {}
+        self.word1_scores = {}
+        self.word2_scores = {}
         self.candidate_names = []   # (w1, w2, score)
         self.refused_names = set()  # (w1, w2)
         self.selected_names = set() # (w1, w2)
@@ -139,10 +164,25 @@ class NameSelectController(object):
         self.select_button = choice_bb.add('✔', state=tkinter.DISABLED, command=self.select_current_candidate_name)
         self.refuse_button = choice_bb.add( '✖', state=tkinter.DISABLED, command=self.refuse_current_candidate_name)
 
+        # restore state
+        if state:
+            self.word1_scores = state['word1_scores']
+            self.word2_scores = state['word2_scores']
+            self.selected_names = state['selected_names']
+            self.refused_names = state['refused_names']
+
+            names = [w1 + w2 for (w1, w2) in self.selected_names]
+            self.selected_slb.setlist(names)
+
+            names = [w1 + w2 for (w1, w2) in self.refused_names]
+            self.refused_slb.setlist(names)
+
     def update_candidate_words(self, selected_words):
         for word in selected_words:
-            if word not in self.word_scores:
-                self.word_scores[word] = 0
+            if word not in self.word1_scores:
+                self.word1_scores[word] = 0
+            if word not in self.word2_scores:
+                self.word2_scores[word] = 0
 
         self.candidate_words = selected_words
         self.update_candidate_names()
@@ -153,10 +193,9 @@ class NameSelectController(object):
             for w2 in self.candidate_words:
                 if (w1, w2) in self.refused_names or (w1, w2) in self.selected_names:
                     continue
-                score = self.word_scores[w1] + self.word_scores[w2]
+                score = self.word1_scores[w1] + self.word2_scores[w2]
                 names.append((w1, w2, score))
         self.candidate_names = sorted(names, key=lambda tup: tup[2])
-        print('CN:', self.candidate_names)
         self.update_name_for_selection()
 
     def update_name_for_selection(self):
@@ -175,40 +214,84 @@ class NameSelectController(object):
 
     def select_current_candidate_name(self):
         (w1, w2) = self.candidate_name
-        self.word_scores[w1] += 1
-        self.word_scores[w2] += 1
+        self.word1_scores[w1] += 1
+        self.word2_scores[w2] += 1
 
         self.selected_names.add(self.candidate_name)
         names = [w1 + w2 for (w1, w2) in self.selected_names]
         self.selected_slb.setlist(names)
-        self.update_name_for_selection()
+        #self.update_name_for_selection()
+        self.update_candidate_names()
 
     def refuse_current_candidate_name(self):
         (w1, w2) = self.candidate_name
-        self.word_scores[w1] -= 1
-        self.word_scores[w2] -= 1
+        self.word1_scores[w1] -= 1
+        self.word2_scores[w2] -= 1
 
         self.refused_names.add(self.candidate_name)
         names = [w1 + w2 for (w1, w2) in self.refused_names]
         self.refused_slb.setlist(names)
-        self.update_name_for_selection()
+        #self.update_name_for_selection()
+        self.update_candidate_names()
 
+    def state_to_save(self):
+        state = {}
+        state['word1_scores'] = self.word1_scores
+        state['word2_scores'] = self.word2_scores
+        state['selected_names'] = self.selected_names
+        state['refused_names'] = self.refused_names
+        return state
 
 class App(object):
     def __init__(self, root, sys):
+        state = self.load_state('saved.pkl')
+        if 'wsc' in state:
+            wsc_saved_state = state['wsc']
+        else:
+            wsc_saved_state = set()
+
+        if 'nsc' in state:
+            nsc_saved_state = state['nsc']
+        else:
+            nsc_saved_state = {}
+
+        self.root = root
         self.sys = sys
 
-        wsc = WordSelectController(sys, root, self)
-        wsc.sf.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=True)
+        self.nsc = NameSelectController(sys, root, nsc_saved_state)
+        self.wsc = WordSelectController(sys, root, self, wsc_saved_state)
 
-        self.nsc = NameSelectController(sys, root)
+        self.wsc.sf.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=True)
         self.nsc.frame.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=True)
 
-        self.button = tkinter.Button(root, text="QUIT", fg="red", command=root.quit)
+        self.button = tkinter.Button(root, text="QUIT", fg="red", command=self.quit)
         self.button.pack(side=tkinter.LEFT)
+        self.wsc.update_selected_words()
 
     def selected_words_updated(self, selected_words):
         self.nsc.update_candidate_words(selected_words)
+
+    def load_state(self, file_path):
+        state = {}
+        if os.path.exists(file_path):
+            with open(file_path, 'rb') as f:
+                state = pickle.load(f)
+
+        print('LOAD:', state)
+        return state
+
+    def save_state(self):
+        file_path = 'saved.pkl'
+        state = {}
+        state['wsc'] = self.wsc.state_to_save()
+        state['nsc'] = self.nsc.state_to_save()
+        print('SAVE:', state)
+        with open(file_path, 'wb') as f:
+            pickle.dump(state, f)
+
+    def quit(self):
+        self.save_state()
+        self.root.quit()
 
 class PhoneMapping(object):
     def __init__(self, cin_filename):
@@ -317,7 +400,7 @@ def main():
     sys = NamingSystem(pm, sounds, wade_giles)
 
     root = tkinter.Tk()
-    #root.option_readfile('optionDB')
+    root.wm_title('取名字')
     Pmw.initialise()
     app = App(root, sys)
     root.mainloop()
