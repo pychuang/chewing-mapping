@@ -158,10 +158,10 @@ class App(object):
         self.root = root
 
         self.wsc = WordSelectController(root, self)
-        self.wsc.sf.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=True)
+        self.wsc.sf.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=True)
 
         button = tkinter.Button(root, text="Save and Quit", fg="red", command=self.quit)
-        button.pack(side=tkinter.LEFT)
+        button.pack(side=tkinter.TOP)
         self.wsc.update_selected_words()
 
     def quit(self):
@@ -171,6 +171,7 @@ class App(object):
 
 def main():
     root = tkinter.Tk()
+    root.option_readfile('pickwords.tkinter.options')
     root.wm_title('選字')
     Pmw.initialise()
     app = App(root)
