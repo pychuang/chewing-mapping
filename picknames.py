@@ -94,12 +94,12 @@ class NameSelectController(object):
             pickle.dump(state, f)
 
         with open('selected_names.txt', 'w') as f:
-            names = [w1 + w2 for (w1, w2) in self.selected_names]
+            names = sorted([w1 + w2 for (w1, w2) in self.selected_names])
             for name in names:
                 f.write(name + '\n')
 
         with open('refused_names.txt', 'w') as f:
-            names = [w1 + w2 for (w1, w2) in self.refused_names]
+            names = sorted([w1 + w2 for (w1, w2) in self.refused_names])
             for name in names:
                 f.write(name + '\n')
 
