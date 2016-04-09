@@ -168,6 +168,7 @@ class App(object):
 
 def main():
     root = tkinter.Tk()
+    root.option_readfile('picknames.tkinter.options')
     root.wm_title('取名字')
     Pmw.initialise()
     app = App(root)
