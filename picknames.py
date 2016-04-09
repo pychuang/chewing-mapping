@@ -155,6 +155,7 @@ class NameSelectController(object):
         #self.update_name_for_selection()
         self.update_candidate_names()
 
+
 class App(object):
     def __init__(self, root):
         self.root = root
@@ -162,13 +163,25 @@ class App(object):
         self.nsc = NameSelectController(root)
         self.nsc.frame.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=True)
 
-        self.button = tkinter.Button(root, text="Save and Quit", fg="red", command=self.quit)
-        self.button.pack(side=tkinter.TOP)
+        self.button = tkinter.Button(root, text='離開', fg="red", command=self.quit)
+        self.button.pack(side=tkinter.RIGHT)
+
+        self.button = tkinter.Button(root, text='儲存後離開', fg="red", command=self.save_and_quit)
+        self.button.pack(side=tkinter.RIGHT)
+
+        self.button = tkinter.Button(root, text='儲存', fg="red", command=self.save)
+        self.button.pack(side=tkinter.RIGHT)
 
         self.nsc.update_candidate_names()
 
-    def quit(self):
+    def save(self):
         self.nsc.save_state()
+
+    def save_and_quit(self):
+        self.nsc.save_state()
+        self.root.quit()
+
+    def quit(self):
         self.root.quit()
 
 
