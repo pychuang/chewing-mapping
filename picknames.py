@@ -70,7 +70,7 @@ class NameSelectController(object):
                     w1 = line[0]
                     w2 = line[1]
                     self.selected_names.add((w1, w2))
-                print('LOAD selected_names:', self.selected_names)
+                #print('LOAD selected_names:', self.selected_names)
 
         file_path = 'refused_names.txt'
         if os.path.exists(file_path):
@@ -79,7 +79,7 @@ class NameSelectController(object):
                     w1 = line[0]
                     w2 = line[1]
                     self.refused_names.add((w1, w2))
-                print('LOAD refused_names:', self.refused_names)
+                #print('LOAD refused_names:', self.refused_names)
 
         self.update_selected_names_view()
 
