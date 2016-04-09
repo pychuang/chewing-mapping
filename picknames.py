@@ -28,6 +28,9 @@ class NameSelectController(object):
         #self.refused_slb.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=True)
 
         # candidate
+        self.num_candidates_label = tkinter.Label(self.frame)
+        self.num_candidates_label.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=True)
+
         self.candidate_label = tkinter.Label(self.frame)
         self.candidate_label.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=True)
 
@@ -78,8 +81,7 @@ class NameSelectController(object):
                     self.refused_names.add((w1, w2))
                 print('LOAD refused_names:', self.refused_names)
 
-        names = [w1 + w2 for (w1, w2) in self.selected_names]
-        self.selected_slb.setlist(names)
+        self.update_selected_names_view()
 
         #names = [w1 + w2 for (w1, w2) in self.refused_names]
         #self.refused_slb.setlist(names)
@@ -112,6 +114,7 @@ class NameSelectController(object):
         self.candidate_names = sorted(names, key=lambda tup: tup[2])
         #print(self.candidate_names)
         self.update_name_for_selection()
+        self.num_candidates_label.config(text=len(self.candidate_names))
 
     def update_name_for_selection(self):
         if self.candidate_names:
@@ -133,10 +136,13 @@ class NameSelectController(object):
         self.word2_scores[w2] += 1
 
         self.selected_names.add(self.candidate_name)
-        names = [w1 + w2 for (w1, w2) in self.selected_names]
-        self.selected_slb.setlist(names)
+        self.update_selected_names_view()
         #self.update_name_for_selection()
         self.update_candidate_names()
+
+    def update_selected_names_view(self):
+        names = sorted([w1 + w2 for (w1, w2) in self.selected_names])
+        self.selected_slb.setlist(names)
 
     def refuse_current_candidate_name(self):
         (w1, w2) = self.candidate_name
@@ -156,7 +162,7 @@ class App(object):
         self.nsc = NameSelectController(root)
         self.nsc.frame.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=True)
 
-        self.button = tkinter.Button(root, text="QUIT", fg="red", command=self.quit)
+        self.button = tkinter.Button(root, text="Save and Quit", fg="red", command=self.quit)
         self.button.pack(side=tkinter.TOP)
 
         self.nsc.update_candidate_names()
