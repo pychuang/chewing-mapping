@@ -24,8 +24,8 @@ class NameSelectController(object):
         self.selected_slb.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=True)
 
         # refused names
-        self.refused_slb = Pmw.ScrolledListBox(self.frame, labelpos=tkinter.N, label_text='不要的')
-        self.refused_slb.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=True)
+        #self.refused_slb = Pmw.ScrolledListBox(self.frame, labelpos=tkinter.N, label_text='不要的')
+        #self.refused_slb.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=True)
 
         # candidate
         self.candidate_label = tkinter.Label(self.frame)
@@ -40,7 +40,7 @@ class NameSelectController(object):
         self.load_state()
 
     def load_state(self):
-        file_path = 'naming.pkl'
+        file_path = '.word_scores.pkl'
         if os.path.exists(file_path):
             with open(file_path, 'rb') as f:
                 state = pickle.load(f)
@@ -81,11 +81,11 @@ class NameSelectController(object):
         names = [w1 + w2 for (w1, w2) in self.selected_names]
         self.selected_slb.setlist(names)
 
-        names = [w1 + w2 for (w1, w2) in self.refused_names]
-        self.refused_slb.setlist(names)
+        #names = [w1 + w2 for (w1, w2) in self.refused_names]
+        #self.refused_slb.setlist(names)
 
     def save_state(self):
-        with open('naming.pkl', 'wb') as f:
+        with open('.word_scores.pkl', 'wb') as f:
             state = {}
             state['word1_scores'] = self.word1_scores
             state['word2_scores'] = self.word2_scores
@@ -110,7 +110,7 @@ class NameSelectController(object):
                 score = self.word1_scores[w1] + self.word2_scores[w2]
                 names.append((w1, w2, score))
         self.candidate_names = sorted(names, key=lambda tup: tup[2])
-        print(self.candidate_names)
+        #print(self.candidate_names)
         self.update_name_for_selection()
 
     def update_name_for_selection(self):
@@ -144,8 +144,8 @@ class NameSelectController(object):
         self.word2_scores[w2] -= 1
 
         self.refused_names.add(self.candidate_name)
-        names = [w1 + w2 for (w1, w2) in self.refused_names]
-        self.refused_slb.setlist(names)
+        #names = [w1 + w2 for (w1, w2) in self.refused_names]
+        #self.refused_slb.setlist(names)
         #self.update_name_for_selection()
         self.update_candidate_names()
 
@@ -154,10 +154,10 @@ class App(object):
         self.root = root
 
         self.nsc = NameSelectController(root)
-        self.nsc.frame.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=True)
+        self.nsc.frame.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=True)
 
         self.button = tkinter.Button(root, text="QUIT", fg="red", command=self.quit)
-        self.button.pack(side=tkinter.LEFT)
+        self.button.pack(side=tkinter.TOP)
 
         self.nsc.update_candidate_names()
 
