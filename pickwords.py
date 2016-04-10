@@ -160,12 +160,25 @@ class App(object):
         self.wsc = WordSelectController(root, self)
         self.wsc.sf.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=True)
 
-        button = tkinter.Button(root, text="Save and Quit", fg="red", command=self.quit)
-        button.pack(side=tkinter.TOP)
+        self.button = tkinter.Button(root, text='離開', fg="red", command=self.quit)
+        self.button.pack(side=tkinter.RIGHT)
+
+        self.button = tkinter.Button(root, text='儲存後離開', fg="red", command=self.save_and_quit)
+        self.button.pack(side=tkinter.RIGHT)
+
+        self.button = tkinter.Button(root, text='儲存', fg="red", command=self.save)
+        self.button.pack(side=tkinter.RIGHT)
+
         self.wsc.update_selected_words()
 
-    def quit(self):
+    def save(self):
         self.wsc.save_state()
+
+    def save_and_quit(self):
+        self.wsc.save_state()
+        self.root.quit()
+
+    def quit(self):
         self.root.quit()
 
 
