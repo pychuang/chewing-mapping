@@ -47,9 +47,10 @@ class NameSelectController(object):
         if os.path.exists(file_path):
             with open(file_path, 'rb') as f:
                 state = pickle.load(f)
-                print('LOAD:', state)
                 self.word1_scores = state['word1_scores']
                 self.word2_scores = state['word2_scores']
+                print('LOAD word1 scores:', self.word1_scores)
+                print('LOAD word2 scores:', self.word2_scores)
 
         file_path = 'selected_words.txt'
         if os.path.exists(file_path):
