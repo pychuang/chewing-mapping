@@ -46,12 +46,11 @@ class NameSelectController(object):
 
     def load_state(self):
         file_path = 'selected_words.txt'
-        if os.path.exists(file_path):
-            with open(file_path, 'r') as f:
-                for line in f:
-                    for word in line:
-                        self.candidate_words.add(word)
-            print('LOAD candidate_words:', self.candidate_words)
+        with open(file_path, 'r') as f:
+            for line in f:
+                for word in line:
+                    self.candidate_words.add(word)
+        print('LOAD candidate_words:', self.candidate_words)
 
         file_path = 'selected_names.txt'
         if os.path.exists(file_path):
