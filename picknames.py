@@ -9,8 +9,10 @@ import tkinter
 class NameSelectController(object):
     def __init__(self, parent_view):
         self.candidate_words = set()
-        self.word1_scores = {}
-        self.word2_scores = {}
+        self.word1_selected_count = {}
+        self.word2_selected_count = {}
+        self.word1_refused_count = {}
+        self.word2_refused_count = {}
         self.refused_names = set()  # (w1, w2)
         self.selected_names = set() # (w1, w2)
 
@@ -43,24 +45,11 @@ class NameSelectController(object):
         self.load_state()
 
     def load_state(self):
-        file_path = '.word_scores.pkl'
-        if os.path.exists(file_path):
-            with open(file_path, 'rb') as f:
-                state = pickle.load(f)
-                self.word1_scores = state['word1_scores']
-                self.word2_scores = state['word2_scores']
-                print('LOAD word1 scores:', self.word1_scores)
-                print('LOAD word2 scores:', self.word2_scores)
-
         file_path = 'selected_words.txt'
         if os.path.exists(file_path):
             with open(file_path, 'r') as f:
                 for line in f:
                     for word in line:
-                        if word not in self.word1_scores:
-                            self.word1_scores[word] = 0
-                        if word not in self.word2_scores:
-                            self.word2_scores[word] = 0
                         self.candidate_words.add(word)
             print('LOAD candidate_words:', self.candidate_words)
 
@@ -70,7 +59,7 @@ class NameSelectController(object):
                 for line in f:
                     w1 = line[0]
                     w2 = line[1]
-                    self.selected_names.add((w1, w2))
+                    self.add_selected_name(w1, w2)
                 #print('LOAD selected_names:', self.selected_names)
 
         file_path = 'refused_names.txt'
@@ -79,7 +68,7 @@ class NameSelectController(object):
                 for line in f:
                     w1 = line[0]
                     w2 = line[1]
-                    self.refused_names.add((w1, w2))
+                    self.add_refused_name(w1, w2)
                 #print('LOAD refused_names:', self.refused_names)
 
         self.update_selected_names_view()
@@ -88,12 +77,6 @@ class NameSelectController(object):
         #self.refused_slb.setlist(names)
 
     def save_state(self):
-        with open('.word_scores.pkl', 'wb') as f:
-            state = {}
-            state['word1_scores'] = self.word1_scores
-            state['word2_scores'] = self.word2_scores
-            pickle.dump(state, f)
-
         with open('selected_names.txt', 'w') as f:
             names = sorted([w1 + w2 for (w1, w2) in self.selected_names])
             for name in names:
@@ -104,16 +87,53 @@ class NameSelectController(object):
             for name in names:
                 f.write(name + '\n')
 
+    def add_selected_name(self, w1, w2):
+        self.selected_count_sanity_check(w1, w2)
+        self.word1_selected_count[w1] += 1
+        self.word2_selected_count[w2] += 1
+        self.selected_names.add((w1, w2))
+
+    def add_refused_name(self, w1, w2):
+        self.refused_count_sanity_check(w1, w2)
+        self.word1_refused_count[w1] += 1
+        self.word2_refused_count[w2] += 1
+        self.refused_names.add((w1, w2))
+
+    def selected_count_sanity_check(self, w1, w2):
+        if w1 not in self.word1_selected_count:
+            self.word1_selected_count[w1] = 0
+        if w2 not in self.word2_selected_count:
+            self.word2_selected_count[w2] = 0
+
+    def refused_count_sanity_check(self, w1, w2):
+        if w1 not in self.word1_refused_count:
+            self.word1_refused_count[w1] = 0
+        if w2 not in self.word2_refused_count:
+            self.word2_refused_count[w2] = 0
+
+    def score_name(self, w1, w2):
+        self.selected_count_sanity_check(w1, w2)
+        self.refused_count_sanity_check(w1, w2)
+
+        score = 0
+        if self.selected_names:
+            score += float(self.word1_selected_count[w1]) / len(self.selected_names)
+            score += float(self.word2_selected_count[w2]) / len(self.selected_names)
+        if self.refused_names:
+            score -= float(self.word1_refused_count[w1]) / len(self.refused_names)
+            score -= float(self.word2_refused_count[w2]) / len(self.refused_names)
+        return score
+
     def update_candidate_names(self):
         names = []
         for w1 in self.candidate_words:
             for w2 in self.candidate_words:
                 if (w1, w2) in self.refused_names or (w1, w2) in self.selected_names:
                     continue
-                score = self.word1_scores[w1] + self.word2_scores[w2]
+                score = self.score_name(w1, w2)
                 names.append((w1, w2, score))
         self.candidate_names = sorted(names, key=lambda tup: tup[2])
-        #print(self.candidate_names)
+        print(self.candidate_names)
         self.update_name_for_selection()
         self.num_candidates_label.config(text=len(self.candidate_names))
 
@@ -133,10 +153,7 @@ class NameSelectController(object):
 
     def select_current_candidate_name(self):
         (w1, w2) = self.candidate_name
-        self.word1_scores[w1] += 1
-        self.word2_scores[w2] += 1
-
-        self.selected_names.add(self.candidate_name)
+        self.add_selected_name(w1, w2)
         self.update_selected_names_view()
         #self.update_name_for_selection()
         self.update_candidate_names()
@@ -147,10 +164,7 @@ class NameSelectController(object):
 
     def refuse_current_candidate_name(self):
         (w1, w2) = self.candidate_name
-        self.word1_scores[w1] -= 1
-        self.word2_scores[w2] -= 1
-
-        self.refused_names.add(self.candidate_name)
+        self.add_refused_name(w1, w2)
         #names = [w1 + w2 for (w1, w2) in self.refused_names]
         #self.refused_slb.setlist(names)
         #self.update_name_for_selection()
